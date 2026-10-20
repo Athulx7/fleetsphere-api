@@ -3,21 +3,39 @@ import type { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { adminPool, testAdminDbConnection } from './config/adminDb.js';
+import { TenantPoolManager } from './services/tenantPoolManager.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import authRoutes from './routes/authRoutes.js';
+import employeeRoutes from './routes/employeeRoutes.js';
+import { ENV } from './config/env.js';
 
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+export const app = express();
+const PORT = ENV.PORT;
 
-app.use(cors());
+// Middleware
+app.use(
+  cors({
+    origin: [ENV.CORS_ORIGIN, 'http://localhost:4200'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 app.use(express.json());
 
+// Public health check routes
 app.get('/', (req: Request, res: Response) => {
-  res.json({ message: 'Hello from FleetSphere API!' });
+  res.json({ message: 'FleetSphere Multi-Tenant API is running.' });
 });
 
 app.get('/api/health', (req: Request, res: Response) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    activeTenantPools: TenantPoolManager.getActivePoolCount(),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Admin Database Health Check endpoint
@@ -38,20 +56,45 @@ app.get('/api/admin/db-health', async (req: Request, res: Response) => {
   }
 });
 
-const server = app.listen(PORT, async () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-  // Test connection to Admin DB on startup
-  await testAdminDbConnection();
-});
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/employees', employeeRoutes);
 
-// Graceful shutdown
+// Global Error Handler
+app.use(errorHandler);
+
+let server: ReturnType<typeof app.listen> | null = null;
+
+if (process.env.NODE_ENV !== 'test') {
+  server = app.listen(PORT, async () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+    await testAdminDbConnection();
+  });
+}
+
+// Graceful shutdown closing admin DB pool and all active tenant pools
 const shutdown = async () => {
   console.log('\nShutting down server gracefully...');
-  server.close(async () => {
+  const closeServer = () =>
+    new Promise<void>((resolve) => {
+      if (server) {
+        server.close(() => resolve());
+      } else {
+        resolve();
+      }
+    });
+
+  try {
+    await closeServer();
     await adminPool.end();
     console.log('[Admin DB] Connection pool closed.');
+    await TenantPoolManager.closeAll();
+    console.log('[Tenant Pool Manager] All tenant pools closed.');
     process.exit(0);
-  });
+  } catch (err) {
+    console.error('Error during shutdown:', err);
+    process.exit(1);
+  }
 };
 
 process.on('SIGINT', shutdown);
