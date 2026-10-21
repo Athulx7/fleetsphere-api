@@ -1,0 +1,65 @@
+CREATE TABLE IF NOT EXISTS public.tbl_dynamicmaster_header (
+    master_id       SERIAL PRIMARY KEY,
+    menu_id         INTEGER,
+    master_code     VARCHAR(50) NOT NULL UNIQUE,       -- URL slug, e.g. 'hierarchy'
+    table_name      VARCHAR(100) NOT NULL,             -- Physical table, e.g. 'tbl_hierarchy_mst'
+    primary_key     VARCHAR(50) DEFAULT 'id',          -- Primary key column, e.g. 'id' or 'u_hierarchy_id'
+    header_name     VARCHAR(100) NOT NULL,             -- Form title, e.g. 'Hierarchy Master'
+    list_title      VARCHAR(100) NOT NULL,             -- Table header, e.g. 'Hierarchy Master List'
+    description     TEXT,
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+
+
+CREATE TABLE IF NOT EXISTS public.tbl_dynamicmaster_setup (
+    id                   SERIAL PRIMARY KEY,
+    master_id            INTEGER NOT NULL REFERENCES public.tbl_dynamicmaster_header(master_id) ON DELETE CASCADE,
+    column_name          VARCHAR(100) NOT NULL,         -- Column name in the physical table
+    label                VARCHAR(100) NOT NULL,         -- Form field label
+    field_type           VARCHAR(50) NOT NULL,          -- 'text', 'number', 'dropdown', 'toggle', 'textarea', 'date'
+    priority             INTEGER DEFAULT 1,             -- Ordering in form & table
+    visible              BOOLEAN DEFAULT TRUE,          -- Show in Add/Edit form
+    required             BOOLEAN DEFAULT FALSE,         -- Mandatory validation
+    readonly             BOOLEAN DEFAULT FALSE,         -- Read-only field
+    
+    -- Foreign Key / Dropdown Resolution
+    dropdown_table       VARCHAR(100),                  -- e.g. 'tbl_hierarchy_mst'
+    dropdown_value_field VARCHAR(100),                  -- e.g. 'id'
+    dropdown_label_field VARCHAR(100),                  -- e.g. 'hierarchy_name'
+    dropdown_filter      TEXT,                          -- e.g. 'is_active = true'
+    depends_on           VARCHAR(100),                  -- Cascading parent field name
+    depends_on_field     VARCHAR(100),                  -- Parent column in dropdown_table
+    
+    -- Validation Rules
+    regex                VARCHAR(255),                  -- e.g. '^\d+$'
+    max_length           INTEGER,
+    min_length           INTEGER,
+    
+    -- List Table Display
+    show_in_list         BOOLEAN DEFAULT TRUE,          -- Show column in list table
+    list_label           VARCHAR(100),                  -- Column header text
+    
+    -- Auto Code Generation
+    is_auto_code         BOOLEAN DEFAULT FALSE,
+    code_prefix          VARCHAR(20),                   -- e.g. 'H'
+    code_length          INTEGER DEFAULT 4,             -- e.g. 3 -> 'H001'
+    is_disable           BOOLEAN DEFAULT FALSE,
+    
+    created_at           TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_dyn_setup_master_id ON public.tbl_dynamicmaster_setup(master_id);
+
+CREATE TABLE IF NOT EXISTS public.tbl_hierarchy_mst (
+    id              SERIAL PRIMARY KEY,
+    hierarchy_code  VARCHAR(50) NOT NULL UNIQUE,
+    hierarchy_name  VARCHAR(150) NOT NULL,
+    level_no        INTEGER NOT NULL,
+    parent_id       INTEGER REFERENCES public.tbl_hierarchy_mst(id),
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);

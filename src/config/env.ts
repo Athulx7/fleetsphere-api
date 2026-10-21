@@ -4,8 +4,8 @@ dotenv.config();
 
 export const ENV = {
   PORT: parseInt(process.env.PORT || '5000', 10),
-  ADMIN_DATABASE_URL: process.env.ADMIN_DATABASE_URL || 'postgresql://postgres:csq@123@localhost:5432/fleetsphere_admin',
-  
+  ADMIN_DATABASE_URL: process.env.ADMIN_DATABASE_URL || 'postgresql://postgres:athul@2004@localhost:5432/fleetsphere_admin',
+
   JWT: {
     SECRET: process.env.JWT_SECRET || 'fleetsphere_super_secret_jwt_key_2026_production_grade_random_xyz987',
     EXPIRES_IN: process.env.JWT_EXPIRES_IN || '1h',
@@ -18,7 +18,7 @@ export const ENV = {
     HOST: process.env.TENANT_DB_DEFAULT_HOST || 'localhost',
     PORT: parseInt(process.env.TENANT_DB_DEFAULT_PORT || '5432', 10),
     USER: process.env.TENANT_DB_DEFAULT_USER || 'postgres',
-    PASSWORD: process.env.TENANT_DB_DEFAULT_PASSWORD || 'csq@123',
+    PASSWORD: process.env.TENANT_DB_DEFAULT_PASSWORD || 'athul@2004',
     MAX_CONNECTIONS: 10,
     IDLE_TIMEOUT_MS: 30000,
     CONNECTION_TIMEOUT_MS: 5000,
