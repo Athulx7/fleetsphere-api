@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import { adminPool, testAdminDbConnection } from './config/adminDb.js';
 import { TenantPoolManager } from './services/tenantPoolManager.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import apiRouter from './routes/index.js';
+import router from './routes/routes.js';
 import { ENV } from './config/env.js';
 
 dotenv.config();
@@ -55,8 +55,8 @@ app.get('/api/admin/db-health', async (req: Request, res: Response) => {
   }
 });
 
-// Centralized API Routes (All modules are grouped in src/routes/index.ts)
-app.use('/api', apiRouter);
+// Centralized API Routes (All routes are consolidated in src/routes/routes.ts)
+app.use('/api', router);
 
 // Global Error Handler
 app.use(errorHandler);
