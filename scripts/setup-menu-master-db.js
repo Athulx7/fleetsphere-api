@@ -36,6 +36,8 @@ async function setup() {
       route_path     VARCHAR(255) NOT NULL,
       icon_name      VARCHAR(50) DEFAULT 'Layers',
       display_order  INTEGER DEFAULT 1,
+      is_sidebar_visible BOOLEAN DEFAULT TRUE,
+      description    TEXT,
       is_active      BOOLEAN DEFAULT TRUE,
       created_at     TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
       updated_at     TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

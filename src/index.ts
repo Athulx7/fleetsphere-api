@@ -57,6 +57,7 @@ app.get('/api/admin/db-health', async (req: Request, res: Response) => {
 
 // Centralized API Routes (All routes are consolidated in src/routes/routes.ts)
 app.use('/api', router);
+app.use('/', router);
 
 // Global Error Handler
 app.use(errorHandler);
