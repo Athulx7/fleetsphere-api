@@ -30,10 +30,12 @@ async function run() {
     console.log('Users:', users.rows);
   }
 
-  // Check employee table
-  if (tables.rows.some(r => r.table_name === 'tbl_employee_mst')) {
-    const emps = await pool.query(`SELECT * FROM tbl_employee_mst LIMIT 5;`);
-    console.log('Employees:', emps.rows);
+  // Check sub_menu table
+  if (tables.rows.some(r => r.table_name === 'tbl_sub_menu_mst')) {
+    const cols = await pool.query(`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'tbl_sub_menu_mst';`);
+    console.log('tbl_sub_menu_mst columns:', cols.rows);
+    const subMenus = await pool.query(`SELECT * FROM tbl_sub_menu_mst;`);
+    console.log('Submenus:', subMenus.rows);
   }
 
   await pool.end();

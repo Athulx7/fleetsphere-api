@@ -257,9 +257,19 @@ export class DynamicMasterController {
       }
 
       // Handle cascading dependency
-      if (field.depends_on && field.depends_on_field && parentValue) {
-        queryParams.push(parentValue);
-        whereConditions.push(`${field.depends_on_field}::text = $${queryParams.length}`);
+      if (field.depends_on) {
+        if (!parentValue || String(parentValue).trim() === '' || parentValue === 'null' || parentValue === 'undefined') {
+          res.status(200).json({
+            success: true,
+            data: [],
+          });
+          return;
+        }
+
+        if (field.depends_on_field) {
+          queryParams.push(String(parentValue).trim());
+          whereConditions.push(`${field.depends_on_field}::text = $${queryParams.length}`);
+        }
       }
 
       const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';

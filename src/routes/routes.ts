@@ -3,6 +3,7 @@ import { AuthController } from '../controllers/authController.js';
 import { EmployeeController } from '../controllers/employeeController.js';
 import { DynamicMasterController } from '../controllers/dynamicMasterController.js';
 import { MenuMasterController } from '../controllers/menuMasterController.js';
+import { UserManagementController } from '../controllers/userManagementController.js';
 import {
   authenticateToken,
   resolveTenantDatabase,
@@ -106,9 +107,23 @@ router.delete(
 );
 
 // ============================================================================
-// 4. Menu Master & Access Mapping Routes (/api/menus)
+// 4. Menu Master & Access Mapping Routes (/api/menus & /api/mainMenu)
 // ============================================================================
-// Dynamic User Menu Tree
+// Dynamic User Menu Tree & Main Menu Grid
+router.get(
+  '/mainMenu',
+  authenticateToken,
+  resolveTenantDatabase,
+  MenuMasterController.getMainMenu
+);
+
+router.get(
+  '/menus/main-menu',
+  authenticateToken,
+  resolveTenantDatabase,
+  MenuMasterController.getMainMenu
+);
+
 router.get(
   '/menus/user-menu',
   authenticateToken,
@@ -183,6 +198,13 @@ router.post(
 );
 
 router.put(
+  '/menus/sub-menus-batch',
+  authenticateToken,
+  resolveTenantDatabase,
+  MenuMasterController.updateSubMenuBatch
+);
+
+router.put(
   '/menus/sub-menus/:subMenuId',
   authenticateToken,
   resolveTenantDatabase,
@@ -224,6 +246,100 @@ router.post(
   authenticateToken,
   resolveTenantDatabase,
   MenuMasterController.saveEmployeeMappings
+);
+
+// ============================================================================
+// 5. User Management & Provisioning Routes (/api/user-management)
+// ============================================================================
+router.get(
+  '/user-management',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserManagementController.getUsers
+);
+
+router.get(
+  '/user-management/stats',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserManagementController.getStats
+);
+
+router.get(
+  '/user-management/config',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserManagementController.getConfig
+);
+
+router.put(
+  '/user-management/config',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserManagementController.updateConfig
+);
+
+router.get(
+  '/user-management/validate-employee/:empCode',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserManagementController.validateEmployee
+);
+
+router.get(
+  '/user-management/next-code',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserManagementController.getNextCode
+);
+
+router.get(
+  '/user-management/dropdowns',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserManagementController.getDropdowns
+);
+
+router.get(
+  '/user-management/:id',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserManagementController.getUserById
+);
+
+router.post(
+  '/user-management',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserManagementController.createUser
+);
+
+router.put(
+  '/user-management/:id',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserManagementController.updateUser
+);
+
+router.post(
+  '/user-management/:id/close',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserManagementController.closeUser
+);
+
+router.post(
+  '/user-management/:id/reopen',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserManagementController.reopenUser
+);
+
+router.delete(
+  '/user-management/:id',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserManagementController.deleteUser
 );
 
 export default router;

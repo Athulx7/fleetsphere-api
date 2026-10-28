@@ -29,7 +29,9 @@ export class MenuMasterController {
           sm.sub_menu_name,
           sm.route_path,
           sm.icon_name AS sub_icon,
-          sm.display_order AS sub_display_order
+          sm.display_order AS sub_display_order,
+          COALESCE(sm.is_sidebar_visible, TRUE) AS is_sidebar_visible,
+          COALESCE(sm.description, '') AS description
         FROM public.tbl_sub_menu_mst sm
         INNER JOIN public.tbl_menu_mst_header h ON sm.header_id = h.header_id
         LEFT JOIN public.tbl_role_menu_mapping rmm 
@@ -77,6 +79,8 @@ export class MenuMasterController {
           sub_icon: row.sub_icon,
           icon_name: row.sub_icon,
           display_order: row.sub_display_order,
+          is_sidebar_visible: row.is_sidebar_visible !== false,
+          description: row.description || '',
         });
       }
 
@@ -87,6 +91,89 @@ export class MenuMasterController {
           headers: headerList,
           rawList: menuRes.rows,
         },
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ success: false, message: msg });
+    }
+  }
+
+  /**
+   * GET /api/mainMenu or /api/menus/main-menu
+   * Retrieves all modules and pages formatted specifically for the MainMenu overlay grid
+   */
+  public static async getMainMenu(req: Request, res: Response<ApiResponse>): Promise<void> {
+    if (!req.tenantContext) {
+      res.status(401).json({ success: false, message: 'Tenant context is missing' });
+      return;
+    }
+
+    try {
+      const pool = req.tenantContext.db;
+      const userRoles = req.tenantContext?.user?.roles || ['ADMIN'];
+      const employeeId = req.tenantContext?.user?.employeeId || null;
+
+      const query = `
+        SELECT DISTINCT
+          h.header_id,
+          h.header_name,
+          h.header_code,
+          h.icon_name AS header_icon,
+          h.display_order AS header_display_order,
+          sm.sub_menu_id,
+          sm.sub_menu_name,
+          sm.route_path,
+          sm.icon_name AS sub_icon,
+          sm.display_order AS sub_display_order,
+          COALESCE(sm.is_sidebar_visible, TRUE) AS is_sidebar_visible,
+          COALESCE(sm.description, '') AS description
+        FROM public.tbl_sub_menu_mst sm
+        INNER JOIN public.tbl_menu_mst_header h ON sm.header_id = h.header_id
+        LEFT JOIN public.tbl_role_menu_mapping rmm 
+          ON sm.sub_menu_id = rmm.sub_menu_id 
+          AND rmm.role_code = ANY($1::text[]) 
+          AND rmm.can_view = TRUE 
+          AND rmm.is_active = TRUE
+        LEFT JOIN public.tbl_employee_menu_mapping emm 
+          ON sm.sub_menu_id = emm.sub_menu_id 
+          AND emm.employee_id = $2 
+          AND emm.is_active = TRUE
+        WHERE sm.is_active = TRUE 
+          AND h.is_active = TRUE
+          AND (rmm.mapping_id IS NOT NULL OR emm.is_granted = TRUE)
+        ORDER BY h.display_order ASC, sm.display_order ASC;
+      `;
+
+      const menuRes = await pool.query(query, [userRoles, employeeId]);
+
+      // Group menus by Category into array: [ { category, icon, items: [...] } ]
+      const categoryMap = new Map<string, { category: string; icon: string; items: any[] }>();
+
+      for (const row of menuRes.rows) {
+        if (!categoryMap.has(row.header_name)) {
+          categoryMap.set(row.header_name, {
+            category: row.header_name,
+            icon: row.header_icon || 'LayoutDashboard',
+            items: [],
+          });
+        }
+
+        categoryMap.get(row.header_name)!.items.push({
+          sub_menu_id: row.sub_menu_id,
+          label: row.sub_menu_name,
+          sub_menu_name: row.sub_menu_name,
+          routes: row.route_path,
+          route_path: row.route_path,
+          description: row.description || `Manage ${row.sub_menu_name.toLowerCase()} and related operations`,
+          icon: row.sub_icon || 'Layers',
+          display_order: row.sub_display_order,
+          is_sidebar_visible: row.is_sidebar_visible !== false,
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: Array.from(categoryMap.values()),
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -285,7 +372,16 @@ export class MenuMasterController {
 
     try {
       const pool = req.tenantContext.db;
-      const { header_id, sub_menu_name, route_path, icon_name, display_order, is_active } = req.body;
+      const {
+        header_id,
+        sub_menu_name,
+        route_path,
+        icon_name,
+        display_order,
+        is_sidebar_visible,
+        description,
+        is_active,
+      } = req.body;
 
       if (!header_id || !sub_menu_name || !route_path) {
         res.status(400).json({
@@ -297,8 +393,8 @@ export class MenuMasterController {
 
       const insertRes = await pool.query(
         `INSERT INTO public.tbl_sub_menu_mst
-         (header_id, sub_menu_name, route_path, icon_name, display_order, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6)
+         (header_id, sub_menu_name, route_path, icon_name, display_order, is_sidebar_visible, description, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING *;`,
         [
           Number(header_id),
@@ -306,6 +402,8 @@ export class MenuMasterController {
           route_path.trim(),
           icon_name || 'Layers',
           Number(display_order) || 1,
+          is_sidebar_visible !== undefined ? Boolean(is_sidebar_visible) : true,
+          description ? description.trim() : null,
           is_active !== undefined ? Boolean(is_active) : true,
         ]
       );
@@ -341,7 +439,16 @@ export class MenuMasterController {
     try {
       const pool = req.tenantContext.db;
       const subMenuId = req.params.subMenuId;
-      const { header_id, sub_menu_name, route_path, icon_name, display_order, is_active } = req.body;
+      const {
+        header_id,
+        sub_menu_name,
+        route_path,
+        icon_name,
+        display_order,
+        is_sidebar_visible,
+        description,
+        is_active,
+      } = req.body;
 
       const updateRes = await pool.query(
         `UPDATE public.tbl_sub_menu_mst
@@ -350,9 +457,11 @@ export class MenuMasterController {
              route_path = COALESCE($3, route_path),
              icon_name = COALESCE($4, icon_name),
              display_order = COALESCE($5, display_order),
-             is_active = COALESCE($6, is_active),
+             is_sidebar_visible = COALESCE($6, is_sidebar_visible),
+             description = COALESCE($7, description),
+             is_active = COALESCE($8, is_active),
              updated_at = NOW()
-         WHERE sub_menu_id = $7
+         WHERE sub_menu_id = $9
          RETURNING *;`,
         [
           header_id !== undefined ? Number(header_id) : null,
@@ -360,6 +469,8 @@ export class MenuMasterController {
           route_path ? route_path.trim() : null,
           icon_name,
           display_order !== undefined ? Number(display_order) : null,
+          is_sidebar_visible !== undefined ? Boolean(is_sidebar_visible) : null,
+          description !== undefined ? description : null,
           is_active !== undefined ? Boolean(is_active) : null,
           subMenuId,
         ]
@@ -375,6 +486,61 @@ export class MenuMasterController {
         message: 'Sub-menu updated successfully.',
         data: updateRes.rows[0],
       });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ success: false, message: msg });
+    }
+  }
+
+  /**
+   * PUT /api/menus/sub-menus-batch
+   * Batch updates display_order and is_sidebar_visible for multiple sub-menus
+   */
+  public static async updateSubMenuBatch(req: Request, res: Response<ApiResponse>): Promise<void> {
+    if (!req.tenantContext) {
+      res.status(401).json({ success: false, message: 'Tenant context is missing' });
+      return;
+    }
+
+    try {
+      const pool = req.tenantContext.db;
+      const { items } = req.body;
+
+      if (!Array.isArray(items)) {
+        res.status(400).json({ success: false, message: 'items array is required.' });
+        return;
+      }
+
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        for (const item of items) {
+          const { sub_menu_id, display_order, is_sidebar_visible } = item;
+          await client.query(
+            `UPDATE public.tbl_sub_menu_mst
+             SET display_order = COALESCE($1, display_order),
+                 is_sidebar_visible = COALESCE($2, is_sidebar_visible),
+                 updated_at = NOW()
+             WHERE sub_menu_id = $3;`,
+            [
+              display_order !== undefined ? Number(display_order) : null,
+              is_sidebar_visible !== undefined ? Boolean(is_sidebar_visible) : null,
+              Number(sub_menu_id),
+            ]
+          );
+        }
+        await client.query('COMMIT');
+
+        res.status(200).json({
+          success: true,
+          message: 'Sub-menus display order and sidebar visibility updated successfully.',
+        });
+      } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+      } finally {
+        client.release();
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       res.status(500).json({ success: false, message: msg });
