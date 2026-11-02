@@ -4,6 +4,7 @@ import { EmployeeController } from '../controllers/employeeController.js';
 import { DynamicMasterController } from '../controllers/dynamicMasterController.js';
 import { MenuMasterController } from '../controllers/menuMasterController.js';
 import { UserManagementController } from '../controllers/userManagementController.js';
+import { ControlPanelController } from '../controllers/controlPanelController.js';
 import {
   authenticateToken,
   resolveTenantDatabase,
@@ -340,6 +341,44 @@ router.delete(
   authenticateToken,
   resolveTenantDatabase,
   UserManagementController.deleteUser
+);
+
+// ============================================================================
+// 6. Control Panel & Setup Module Routes (/api/control-panel & /api/setup-module)
+// ============================================================================
+router.get(
+  '/control-panel/modules',
+  authenticateToken,
+  resolveTenantDatabase,
+  ControlPanelController.getModules
+);
+
+router.get(
+  '/control-panel/modules/:moduleCode',
+  authenticateToken,
+  resolveTenantDatabase,
+  ControlPanelController.getModuleSettings
+);
+
+router.put(
+  '/control-panel/modules/:moduleCode',
+  authenticateToken,
+  resolveTenantDatabase,
+  ControlPanelController.updateModuleSettings
+);
+
+router.post(
+  '/control-panel/modules/:moduleCode/reset',
+  authenticateToken,
+  resolveTenantDatabase,
+  ControlPanelController.resetModuleSettings
+);
+
+router.get(
+  '/setup-module/overview',
+  authenticateToken,
+  resolveTenantDatabase,
+  ControlPanelController.getSetupOverview
 );
 
 export default router;
