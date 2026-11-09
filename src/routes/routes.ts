@@ -5,6 +5,7 @@ import { DynamicMasterController } from '../controllers/dynamicMasterController.
 import { MenuMasterController } from '../controllers/menuMasterController.js';
 import { UserManagementController } from '../controllers/userManagementController.js';
 import { ControlPanelController } from '../controllers/controlPanelController.js';
+import { UserThemeController } from '../controllers/userThemeController.js';
 import {
   authenticateToken,
   resolveTenantDatabase,
@@ -379,6 +380,31 @@ router.get(
   authenticateToken,
   resolveTenantDatabase,
   ControlPanelController.getSetupOverview
+);
+
+// ============================================================================
+// 7. User Theme Style & Personalize Routes (/api/user/theme-preferences)
+// Available for ALL authenticated users
+// ============================================================================
+router.get(
+  '/user/theme-preferences',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserThemeController.getPreferences
+);
+
+router.post(
+  '/user/theme-preferences',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserThemeController.savePreferences
+);
+
+router.delete(
+  '/user/theme-preferences',
+  authenticateToken,
+  resolveTenantDatabase,
+  UserThemeController.resetPreferences
 );
 
 export default router;

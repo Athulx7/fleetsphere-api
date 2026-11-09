@@ -9,7 +9,7 @@ const { Pool } = pg;
 async function setPassword() {
   const email = process.argv[2] || 'admin@client001.com';
   const plainPassword = process.argv[3] || '1';
-  const dbName = process.argv[4] || 'fleetsphere_clineta';
+  const dbName = process.argv[4] || 'fleetsphere_clientA';
   const saltRounds = 10;
 
   console.log(`Hashing password for: ${email}`);
@@ -22,7 +22,7 @@ async function setPassword() {
     host: process.env.ADMIN_DB_HOST || 'localhost',
     port: Number(process.env.ADMIN_DB_PORT) || 5432,
     user: process.env.ADMIN_DB_USER || 'postgres',
-    password: process.env.ADMIN_DB_PASSWORD || 'athul@2004',
+    password: process.env.ADMIN_DB_PASSWORD || process.env.TENANT_DB_PASSWORD || 'csq@123',
     database: dbName,
   });
 

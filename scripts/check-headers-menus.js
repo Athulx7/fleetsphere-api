@@ -1,12 +1,14 @@
 import pg from 'pg';
 const { Pool } = pg;
 
+const targetDb = process.argv[2] || process.env.TENANT_DB_NAME || 'fleetsphere_clientA';
+
 const pool = new Pool({
-  host: 'localhost',
-  port: 5432,
-  user: 'postgres',
-  password: 'athul@2004',
-  database: 'fleetsphere_clineta'
+  host: process.env.TENANT_DB_HOST || 'localhost',
+  port: Number(process.env.TENANT_DB_PORT) || 5432,
+  user: process.env.TENANT_DB_USER || 'postgres',
+  password: process.env.TENANT_DB_PASSWORD || process.env.ADMIN_DB_PASSWORD || 'csq@123',
+  database: targetDb,
 });
 
 async function check() {
