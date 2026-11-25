@@ -204,6 +204,24 @@ export class AuthController {
         permissions,
       });
 
+      // 15.5 Set secure HttpOnly cookie containing JWT token (and readable client hint cookie)
+      const isProd = process.env.NODE_ENV === 'production';
+      res.cookie('fleetsphere_token', token, {
+        httpOnly: true,                                       // Inaccessible to JavaScript (prevents XSS theft)
+        secure: isProd,                                       // Only send over HTTPS in production
+        sameSite: 'lax',                                      // CSRF defense
+        maxAge: 24 * 60 * 60 * 1000,                          // 24 hours
+        path: '/',
+      });
+
+      res.cookie('fleetsphere_logged_in', 'true', {
+        httpOnly: false,                                      // Readable by client JS for UI state & educational study
+        secure: isProd,
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+
       // 16. Return login response
       res.status(200).json({
         success: true,
@@ -254,8 +272,19 @@ export class AuthController {
     res.status(200).json({
       success: true,
       data: {
-        user,
-        tenant,
+        user: {
+          id: user.userId,
+          email: user.email,
+          employee_id: user.employeeId,
+          designation: user.designation,
+          roles: user.roles,
+          permissions: user.permissions,
+        },
+        company: {
+          id: tenant.companyId,
+          code: tenant.companyCode,
+          name: tenant.companyName,
+        },
       },
     });
   }
@@ -264,8 +293,18 @@ export class AuthController {
    * POST /api/auth/logout
    */
   public static async logout(req: Request, res: Response<ApiResponse>): Promise<void> {
-    // If cookies were used, clear cookie here:
-    // res.clearCookie('token', { ... });
+    // Clear HttpOnly token cookie and logged_in hint cookie
+    res.clearCookie('fleetsphere_token', {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+    });
+    res.clearCookie('fleetsphere_logged_in', {
+      httpOnly: false,
+      sameSite: 'lax',
+      path: '/',
+    });
+
     res.status(200).json({
       success: true,
       message: 'Logged out successfully',

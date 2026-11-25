@@ -16,26 +16,27 @@ export function authenticateToken(
   res: Response,
   next: NextFunction
 ): void {
-  const authHeader = req.headers.authorization;
+  let token: string | undefined;
 
-  if (!authHeader) {
+  // 1. Check for JWT token inside secure HttpOnly cookie
+  if (req.cookies && req.cookies.fleetsphere_token) {
+    token = req.cookies.fleetsphere_token;
+  }
+  // 2. Fallback to Authorization: Bearer <token> header (for API / mobile clients)
+  else if (req.headers.authorization) {
+    const parts = req.headers.authorization.split(' ');
+    if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
+      token = parts[1];
+    }
+  }
+
+  if (!token) {
     res.status(401).json({
       success: false,
-      message: 'Access denied: Authorization header is missing',
+      message: 'Access denied: Authentication token is missing (neither HttpOnly cookie nor Authorization header found)',
     });
     return;
   }
-
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0].toLowerCase() !== 'bearer') {
-    res.status(401).json({
-      success: false,
-      message: 'Access denied: Token must follow Bearer format (Authorization: Bearer <token>)',
-    });
-    return;
-  }
-
-  const token = parts[1];
 
   try {
     const payload = JwtService.verifyToken(token);

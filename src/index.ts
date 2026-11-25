@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Request, Response } from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { adminPool, testAdminDbConnection } from './config/adminDb.js';
 import { TenantPoolManager } from './services/tenantPoolManager.js';
@@ -23,6 +24,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cookieParser());
 
 // Public health check routes
 app.get('/', (req: Request, res: Response) => {
