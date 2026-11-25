@@ -227,9 +227,9 @@ export class AuthController {
         success: true,
         message: 'Login successful',
         data: {
-          token,
-          token_type: 'Bearer',
-          expires_in: 3600,
+          // token,
+          // token_type: 'Bearer',
+          // expires_in: 3600,
           user: {
             id: user.u_user_id,
             email: user.c_email,

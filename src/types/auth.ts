@@ -88,9 +88,9 @@ export interface LoginRequestBody {
 }
 
 export interface LoginResponseData {
-  token: string;
-  token_type: string;
-  expires_in: number;
+  // token: string;
+  // token_type: string;
+  // expires_in: number;
   user: {
     id: string;
     email: string;
